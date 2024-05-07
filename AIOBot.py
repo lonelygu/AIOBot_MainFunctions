@@ -8,6 +8,7 @@ from studentparcer import students
 from teacherparcer import teacher
 from space import *
 from GPT import get_response
+from telegramtoken import *
 
 import time
 import asyncio
@@ -18,8 +19,6 @@ user_states = {}
 last_message_times = {}
 group = None  # group index
 router = Router()
-
-from telegramtoken import *
 
 
 # class Lastname(StatesGroup):

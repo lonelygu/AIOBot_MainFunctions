@@ -14,7 +14,6 @@ yesterday = today = tomorrow = moment
 day_of_week = moment.weekday()
 
 
-=
 
 def convert(date):
     date_str = date.strftime('%Y-%m-%d')
