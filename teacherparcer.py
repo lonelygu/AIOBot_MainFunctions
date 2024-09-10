@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from space import *
 
-CACHE_EXPIRY_SECONDS = 3600*4
+CACHE_EXPIRY_SECONDS = 3600
 cache_dict = {}
 site = 'https://raspmoskbt.ru/rasp/'
 

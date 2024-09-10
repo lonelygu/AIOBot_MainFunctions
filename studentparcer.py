@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from space import *
 
 cell = []
-CACHE_EXPIRY_SECONDS = 3600*4
+CACHE_EXPIRY_SECONDS = 3600
 cache_dict = {}
 
 moment = datetime.now().date()
@@ -44,13 +44,13 @@ site = 'https://raspmoskbt.ru/rasp/'
 def process_table(tables, index, name_of_group):
     global maybe
     if index < len(tables):
-        if len(tables) == 6:
-            if index >= 2:
+        if len(tables) == 7:
+            if index >= 3:
                 index = index + 1
         table = tables[index]  # Corrected line
-
         # Извлечение данных из таблицы
         rows = table.find_all('tr')  # Найти все строки в текущей таблице
+
 
         # Инициализация списка для хранения данных столбцов
         columns = []
@@ -67,6 +67,7 @@ def process_table(tables, index, name_of_group):
 
         # Итерация по элементам второго массива и замена в строке
         for i, name in enumerate(schedule_name):
+
             # Создание регулярного выражения для поиска неполного имени
             pattern = re.compile(name)
             # Проверяем, что индекс не выходит за пределы списка full_name
@@ -92,16 +93,16 @@ def process_table(tables, index, name_of_group):
                 if x > 0:
                     globals()[f'cell{x + 1}'][2] = globals()[f'save{x - 1}']
             globals()[f'cell{(len(columns))}'].insert(3, globals()[f'save{len(columns) - 1}'])
-
-            for y in range(len(GroupsForTable[index])):
-                if name_of_group == GroupsForTable[index][y]:
+            for y in range(len(GroupsForTable[index-1])):
+                if name_of_group == GroupsForTable[index-1][y]:
                     cell = globals()[f'cell{y + 2}']
                     return cell
         else:
             for y in range(len(columns)):
-                if name_of_group == columns[y][0][:-5]:
+                if name_of_group.lower() == columns[y][0].lower().replace('\n', ' ').replace(' ', '')[:7]:
                     cell = columns[y]
                     return cell
+
 
 
 def students(day, group):

@@ -7,10 +7,8 @@ from datetime import datetime
 from studentparcer import students
 from teacherparcer import teacher
 from space import *
-from GPT import get_response
 from telegramtoken import *
 
-import time
 import asyncio
 import aiofiles
 
@@ -119,7 +117,7 @@ async def get_start(message: Message, bot: Bot):
     await set_commands(bot)
     await asyncio.sleep(0.5)
     await message.answer(f"Здравствуйте {message.from_user.first_name}",
-                         reply_markup=button_builder(["Расписание"]))
+                         reply_markup=button_builder(["Расписание", "Питание"]))
 
 
 async def get_rebootdate(message: Message, bot: Bot):
@@ -133,14 +131,29 @@ async def get_rebootdate(message: Message, bot: Bot):
     warning = await message.answer(
         f"<b><i>Эта команда создана для того, чтобы определить момент времени, когда происходит сброс данных, введенных в бота</i></b>",
         parse_mode='HTML')
-    asyncio.create_task(delete_message_after_delay(bot, chat_id, warning.message_id))
+    await asyncio.create_task(delete_message_after_delay(bot, chat_id, warning.message_id))
 
 
 async def delete_message_after_delay(bot: Bot, chat_id: int, message_id: int, delay=5):
     await asyncio.sleep(delay)
     await bot.delete_message(chat_id, message_id)
 
-
+async def Food_time(message: Message, bot: Bot):
+    await asyncio.sleep(0.5)
+    user_id = message.from_user.id
+    user_states[user_id] = {'selected_option': 'Питание'}
+    await message.answer("10:30\nЭ11-24,Б11-24,Б12-24,Б13-24,Ф11-24\n\n"
+                         "10:40\nИС11-24,ИС12-24,ИС13-24,ИС14-24,ИС15-24\n\n"
+                         "12:20\nИС16-24,СА11-24,СА12-24,Ф12-24,ИС23-23,Ф13-24\n\n"
+                         "12:30\nИБ11-24,ИБ12-24,ИБ13-24,БА11-24,БА13-24\n\n"
+                         "14:10\nИС21-23,ИС22-23,ИС24-23,ИС31-22,ИС31-22,СА22-23\n\n"
+                         "14:20\nСА21-23,СА31-22,ИБ21-23,ИБ22-23,ИС33-22\n\n"
+                         "16:00\nСА41-21,ИБ31-22,ИБ32-23,ИБ41-22,ИБ42-21,БА21-23\n\n"
+                         "16:10\nБА23-23,БА31-22,БА32-22,БА41-21,БА42-21\n\n")
+    warning = await message.answer(
+        f"<b><i>Сделано по просьбе пользователей,в дальнейшем будет дополнено</i></b>",
+        parse_mode='HTML')
+    await asyncio.create_task(delete_message_after_delay(bot, user_id, warning.message_id))
 async def Qualification(message: Message, bot: Bot):
     await asyncio.sleep(0.5)
     user_id = message.from_user.id
@@ -190,9 +203,9 @@ async def bugs(message: Message, bot: Bot):
     await asyncio.sleep(0.5)
     await message.answer(f"lonelygu багов найдено ≈ около inf\n@FedyaNev багов найдено = 2\n@zibi14 багов найдено = 1")
 
-
 # wide-ranging functions
 async def Work(message: Message, bot: Bot):
+    await asyncio.sleep(0.5)
     user_id = message.from_user.id
     day = message.text.lower()
     # Извлекаем выбранную группу для пользователя
@@ -203,12 +216,13 @@ async def Work(message: Message, bot: Bot):
     lessons = students(day, selected_group)
     if lessons is not None:
         await message.answer(f"Вот расписание для группы {selected_group} на выбранный вами день")
-        await message.answer(f"{lessons}")
+        await message.answer(f"`{lessons}`", parse_mode='Markdown')
     else:
         await message.answer(f"Расписание для группы {selected_group} на выбранный вами день не было выложено")
 
 
 async def Tlessons(message: Message, bot: Bot):
+    await asyncio.sleep(0.5)
     user_id = message.from_user.id
     secondname = user_states.get(user_id, {}).get('surname', None)
     if not secondname:
@@ -219,12 +233,13 @@ async def Tlessons(message: Message, bot: Bot):
     selected_day = message.text.lower()
     lessons = teacher(selected_day, secondname)
     if lessons is not None:
-        await message.answer(f"{lessons}")
+        await message.answer(f"`{lessons}`", parse_mode='Markdown')
     else:
         await message.answer(f"У данного преподователя нету пар на выбранный вами день")
 
 
 async def process_callback_button(callback_query: CallbackQuery, bot: Bot):
+    await asyncio.sleep(0.5)
     user_id = callback_query.from_user.id
     button = callback_query.data
     if button in ("left", "right"):
@@ -251,7 +266,7 @@ async def process_callback_button(callback_query: CallbackQuery, bot: Bot):
                 result = f"Расписания для группы {user_states[user_id]['group']} на выбранный день - {day},не было выложено"
             await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                         message_id=callback_query.message.message_id,
-                                        text=result, reply_markup=inline_days())
+                                        text=f"`{result}`", reply_markup=inline_days(), parse_mode='Markdown')
         else:
             result = "Вы не выбрали группу"
             await bot.edit_message_text(chat_id=callback_query.from_user.id,
@@ -287,46 +302,26 @@ async def add_chat_id_to_file(chat_id):
         print(f"Ошибка при записи chat_id в файл: {e}")
 
 
-async def on_message(message: Message):
-    user_id = message.from_user.id
-    current_time = time.time()
-    # Проверяем, не отправлял ли пользователь сообщение в течение последней минуты
-    if user_id in last_message_times and current_time - last_message_times[user_id] < 60:
-        await message.answer("Пожалуйста, не отправляйте сообщения чаще, чем один раз в минуту.")
-        return
-    # Обновляем время последнего сообщения для пользователя
-    last_message_times[user_id] = current_time
-    # Проверяем, выбрал ли пользователь "GPT"
-    if user_states.get(user_id, {}).get('selected_option') == 'GPT':
-        # Если выбрал "GPT", обрабатываем сообщение как запрос к GPT
-        response = get_response(message.text)
-        await message.answer(response)
-    else:
-        # Если не выбрал "GPT", обрабатываем сообщение как обычно
-        # Здесь может быть ваша логика обработки сообщений для других случаев
-        pass
-
-
 # main
 async def start():
     bot = Bot(token=token)
     dp = Dispatcher()
-
     dp.message.register(get_start, Command(commands=["start"]))  # Add GPT later to builder
     dp.message.register(get_rebootdate, Command(commands=["reboot_date"]))
-    # dp.message.register(gpt_selection, F.text == "GPT")
+    dp.message.register(Food_time, F.text == "Питание")
     dp.message.register(Qualification, F.text == "Расписание")
-    dp.message.register(bugs, NotGPTFilter(True), F.text.in_(["bugs"]))
-    dp.message.register(handle_role_selection, NotGPTFilter(True), F.text.in_(["Студент", "Преподаватель"]))
-    dp.message.register(select_department, NotGPTFilter(True), DepartmentsKey_filter)
-    dp.message.register(Sunset, NotGPTFilter(True), SurnameFilter(surname))
-    dp.callback_query.register(process_callback_button, NotGPTFilter(True), F.data.in_(GroupsAll))
-    dp.callback_query.register(process_callback_button, NotGPTFilter(True), F.data.in_(["left", "right"]))
-    dp.message.register(Work, NotGPTFilter(True), F.text.in_(["Вчера", "Сегодня", "Завтра"]))
-    dp.message.register(Tlessons, NotGPTFilter(True), F.text.in_(["Вчерашний", "Сегодняшний", "Завтрашний"]))
-    # dp.message.register(on_message)
+    dp.message.register(bugs,  F.text.in_(["bugs"]))
+    dp.message.register(handle_role_selection, F.text.in_(["Студент", "Преподаватель"]))
+    dp.message.register(select_department, DepartmentsKey_filter)
+    dp.message.register(Sunset,SurnameFilter(surname))
+    dp.callback_query.register(process_callback_button, F.data.in_(GroupsAll))
+    dp.callback_query.register(process_callback_button, F.data.in_(["left", "right"]))
+    dp.message.register(Work,  F.text.in_(["Вчера", "Сегодня", "Завтра"]))
+    dp.message.register(Tlessons, F.text.in_(["Вчерашний", "Сегодняшний", "Завтрашний"]))
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, allowed_updates=['message', 'callback_query'])
+    except asyncio.exceptions.CancelledError:
+        print("Программа завершена")
     finally:
         await bot.session.close()
 
